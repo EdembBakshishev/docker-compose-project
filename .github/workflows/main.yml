@@ -60,7 +60,7 @@ jobs:
     - name: Deploy via rsync
       uses: burnett01/rsync-deployments@5.1
       with:
-        switches: "-avz --delete --exclude=myenv --exclude=.git --exclude=.github --exclude=data/certbot/conf/renewal-hooks"
+        switches: -avz --delete --exclude=myenv --exclude=.git --exclude=.github --exclude=data/certbot/conf/renewal-hooks
         path: ./
         remote_path: /home/ubuntu/Docker-compose-project
         remote_host: ${{ secrets.EC2_HOST }}
