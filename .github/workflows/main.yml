@@ -1,34 +1,3 @@
-name: CI/CD Docker Compose
-
-on:
-  push:
-    branches: [ main ]
-
-jobs:
-  build-and-deploy:
-    runs-on: ubuntu-latest
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
-
-    - name: Set up Docker Compose
-      run: |
-        sudo apt-get update
-        sudo apt-get install docker-compose -y
-
-    - name: Deploy to EC2 via SSH
-      uses: appleboy/ssh-action@v0.1.10
-      with:
-        host: ${{ secrets.EC2_HOST }} #172.31.86.217
-        username: ${{ secrets.EC2_USER }}
-        key: ${{ secrets.EC2_KEY }}
-        script: |
-          cd ~/Docker-compose-project
-          git pull origin main
-          docker compose down
-          docker compose up -d --build
-
 # name: CI/CD Docker Compose
 
 # on:
@@ -43,23 +12,58 @@ jobs:
 #     - name: Checkout code
 #       uses: actions/checkout@v3
 
-#     - name: Deploy via rsync
-#       uses: burnett01/rsync-deployments@5.1
-#       with:
-#         switches: -avz --delete --exclude='myenv' --exclude='.git' --exclude='.github'
-#         path: ./
-#         remote_path: /home/ubuntu/Docker-compose-project
-#         remote_host: ${{ secrets.EC2_HOST }}
-#         remote_user: ${{ secrets.EC2_USER }}
-#         remote_key: ${{ secrets.EC2_KEY }}
+#     - name: Set up Docker Compose
+#       run: |
+#         sudo apt-get update
+#         sudo apt-get install docker-compose -y
 
-#     - name: Restart docker-compose on EC2
+#     - name: Deploy to EC2 via SSH
 #       uses: appleboy/ssh-action@v0.1.10
 #       with:
-#         host: ${{ secrets.EC2_HOST }}
+#         host: ${{ secrets.EC2_HOST }} #172.31.86.217
 #         username: ${{ secrets.EC2_USER }}
 #         key: ${{ secrets.EC2_KEY }}
 #         script: |
 #           cd ~/Docker-compose-project
+#           git pull origin main
 #           docker compose down
 #           docker compose up -d --build
+
+name: CI/CD Docker Compose
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Deploy via rsync
+      uses: burnett01/rsync-deployments@5.1
+      with:
+        switches: -avz --delete \
+          --exclude='myenv' \
+          --exclude='.git' \
+          --exclude='.github' \
+          --exclude='data/certbot/conf/renewal-hooks'
+        path: ./
+        remote_path: /home/ubuntu/Docker-compose-project
+        remote_host: ${{ secrets.EC2_HOST }}
+        remote_user: ${{ secrets.EC2_USER }}
+        remote_key: ${{ secrets.EC2_KEY }}
+
+    - name: Restart docker-compose on EC2
+      uses: appleboy/ssh-action@v0.1.10
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USER }}
+        key: ${{ secrets.EC2_KEY }}
+        script: |
+          cd ~/Docker-compose-project
+          docker compose down
+          docker compose up -d --build
