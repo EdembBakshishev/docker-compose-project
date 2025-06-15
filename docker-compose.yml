@@ -62,7 +62,7 @@ services:
       - db
     environment:
       DATABASE_URL: postgresql://user:password@db/smmhub
-   #################### command: sh -c "python init_db.py && python server.py"
+   #command: sh -c "python init_db.py && python server.py"
 
 volumes:
   postgres_data:
