@@ -63,3 +63,4 @@ jobs:
           cd ~/Docker-compose-project
           docker compose down
           docker compose up -d --build
+#
