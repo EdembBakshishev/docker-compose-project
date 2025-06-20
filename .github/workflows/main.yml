@@ -33,7 +33,7 @@
 #           docker compose down
 #           docker compose up -d --build
 
-name: CI/CD Docker Compose
+name: CI/CD with ECR and EC2
 
 on:
   push:
@@ -47,23 +47,32 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v3
 
-    - name: Deploy via rsync
-      uses: burnett01/rsync-deployments@5.1
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v2
       with:
-        switches: -avz --delete --exclude=myenv --exclude=.git --exclude=.github --exclude=data/certbot/conf/renewal-hooks
-        path: ./
-        remote_path: /home/ubuntu/Docker-compose-project
-        remote_host: ${{ secrets.EC2_HOST }}
-        remote_user: ${{ secrets.EC2_USER }}
-        remote_key: ${{ secrets.EC2_KEY }}
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ secrets.AWS_REGION }}
 
-    - name: Restart docker-compose on EC2
+    - name: Login to Amazon ECR
+      run: |
+        aws ecr get-login-password | docker login --username AWS --password-stdin ${{ secrets.ECR_REGISTRY }}
+
+    - name: Build and push Docker image
+      run: |
+        IMAGE=${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:latest
+        docker build -t $IMAGE .
+        docker push $IMAGE
+
+    - name: Deploy on EC2 via SSH
       uses: appleboy/ssh-action@v0.1.10
       with:
         host: ${{ secrets.EC2_HOST }}
         username: ${{ secrets.EC2_USER }}
         key: ${{ secrets.EC2_KEY }}
         script: |
+          aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.ECR_REGISTRY }}
+          docker pull ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:latest
           cd ~/Docker-compose-project
           docker compose down
-          docker compose up -d --build
+          docker compose up -d
